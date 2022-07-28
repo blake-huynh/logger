@@ -5,16 +5,6 @@ services:
     image: wurstmeister/zookeeper
     ports:
       - 2181:2181
-  kafka:
-    container_name: kafka
-    image: wurstmeister/kafka
-    ports:
-      - 9092:9092
-    volumes:
-      - ./data/kafka:/var/run/docker.dock
-    environment:
-      - KAFKA_ADVERTISED_HOST_NAME=kafka
-      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
   postgres:
     container_name: postgres
     image: postgres
@@ -26,6 +16,18 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=postgres
+  kafka:
+    container_name: kafka
+    image: wurstmeister/kafka
+    ports:
+      - 9092:9092
+    volumes:
+      - ./data/kafka:/var/run/docker.dock
+    environment:
+      - KAFKA_ADVERTISED_HOST_NAME=kafka
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+    depends_on:
+      - zookeeper
   redis:
     container_name: redis
     image: redis
@@ -33,19 +35,21 @@ services:
       - 6379:6379
     volumes:
       - ./data/redis/data:/data
-  web:
-    container_name: web
-    build: ./web
-    ports:
-      - 8080:8080
-    volumes:
-      - ./web:/web
-    environment:
-      - PORT=8080
-      - POSTGRES_URL=postgres://postgres:postgres@postgres:5432/postgres
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-      - KAFKA_TOPIC=topic1
-    depends_on:
-      - postgres
-      - kafka
+  # web:
+  #   container_name: web
+  #   build: ./web
+  #   ports:
+  #     - 8080:8080
+  #   volumes:
+  #     - ./web:/web
+  #   environment:
+  #     - PORT=8080
+  #     - POSTGRES_URL=postgres://postgres:postgres@postgres:5432/postgres
+  #     - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+  #     - KAFKA_TOPIC=topic1
+  #     - REDIS_URL=redis://redis:6379
+  #   depends_on:
+  #     - postgres
+  #     - kafka
+  #     - redis
 

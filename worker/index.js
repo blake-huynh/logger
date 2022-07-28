@@ -6,12 +6,7 @@ const Koa = require('koa')
 const router = require('./router')
 const app = new Koa()
 const sequelize = require('sequelize')
-const { 
-    v1: uuidv1,
-    v4: uuidv4,
-  } = require('uuid');
 
-//app.use(middleware.parseQuery({ allowDots: true }))
 const dbsAreRunning = async () => {
     const db = await new sequelize(process.env.POSTGRES_URL)
     const Key = db.define('key', {
