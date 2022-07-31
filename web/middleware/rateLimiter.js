@@ -3,6 +3,7 @@ const FIFTEEN_MINUTES_IN_SECONDS = 3//60*15
 // Token bucket rate limiter
 module.exports = async (ctx, next) => {
     const apiKey = ctx.headers['x-api-key']
+    console.log("header123", apiKey)
     const redisKey = `${apiKey}_counter`
     const redisKeyLastResetTime = `${apiKey}_last_reset_time`
     if (!apiKey) {
