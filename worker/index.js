@@ -1,9 +1,8 @@
 'use strict'
 const port = process.env.PORT || 8081
-const ip = require('ip')
 const Koa = require('koa')
 const app = new Koa()
-const host = process.env.HOST_IP || ip.address()
+
 //KAFKA
 const { Kafka, logLevel } = require('kafkajs')
 const kafka = new Kafka({
@@ -32,17 +31,27 @@ const init = async () => {
         portPostgres,
         dialect: 'postgres',
     })
-    const Request = db.models.Request
+    const Request = await db.define('Request', {
+        timestamp : sequelize.INTEGER,
+        key: sequelize.STRING
+    })
     await consumer.connect()
     await consumer.subscribe({ topic: 'topic1', fromBeginning: true })
     await consumer.run({
         eachMessage: async ({ topic, partition, message }) => {
-            console.log("printing123")
-            console.log(message.value)
+            const messageArr = message.value.toString().split(":")
+            const apiKey = messageArr[0]
+            const timestamp = messageArr[1]
+            Request.create({
+                timestamp : timestamp,
+                key: apiKey
+            })
         },
     })
 }
 setTimeout(init, 0)
-app.listen(port)
+app.listen(port, () => {
+    console.log(`port ${port} listen`)
+})
 
 
