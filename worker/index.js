@@ -1,49 +1,48 @@
 'use strict'
-
-const port = process.env.PORT || 8080
+const port = process.env.PORT || 8081
+const ip = require('ip')
 const Koa = require('koa')
-//const middleware = require('./middleware')
-const router = require('./router')
 const app = new Koa()
-const sequelize = require('sequelize')
+const host = process.env.HOST_IP || ip.address()
+//KAFKA
+const { Kafka, logLevel } = require('kafkajs')
+const kafka = new Kafka({
+  clientId: 'worker',
+  logLevel: logLevel.ERROR,
+  brokers: [`localhost:9092`],
+  retry: {
+    initialRetryTime: 1000,
+    retries: 9
+  }
+})
+const consumer = kafka.consumer({ groupId: 'worker-group' })
 
-const dbsAreRunning = async () => {
-    const db = await new sequelize(process.env.POSTGRES_URL)
-    const Key = db.define('key', {
-        key : sequelize.STRING
+//POSTGRES
+const sequelize = require('sequelize')
+const user = 'postgres'
+const hostPostgres = 'localhost'
+const database = 'postgres'
+const password = 'postgres'
+const portPostgres = '5432'
+
+
+const init = async () => {
+    const db = await new sequelize(database, user, password, {
+        hostPostgres,
+        portPostgres,
+        dialect: 'postgres',
     })
-    db.sync({force: true})
-    const client = new kafka.KafkaClient({kafkaHost : process.env.KAFKA_BOOTSTRAP_SERVERS})
-    const producer = new kafka.Producer(client)
-    producer.on('ready', () => {
-        app.use(async (ctx, next) => {
-            await next();
-            const rt = ctx.response.get('X-Response-Time');
-            console.log(`${ctx.method} ${ctx.url} - ${rt}`);
-        });
-        app.use(router.middleware())
-        router.get('/key', async (ctx, next) => {
-            producer.send([{topic: process.env.KAFKA_TOPIC || 'topic1', messages: '7148374099'}], async (err, data) => {
-                if(err) {
-                    console.log(err)
-                }
-                else {
-                    const uuid = uuidv4()
-                    await Key.create({
-                        key: uuid
-                    })
-                    ctx.body = uuid;
-                    next()
-                }
-            })
-        })
-        app.listen(port, () => {
-            console.log(`port ${port} listen`)
-        })  
+    const Request = db.models.Request
+    await consumer.connect()
+    await consumer.subscribe({ topic: 'topic1', fromBeginning: true })
+    await consumer.run({
+        eachMessage: async ({ topic, partition, message }) => {
+            console.log("printing123")
+            console.log(message.value)
+        },
     })
 }
-
-setTimeout(dbsAreRunning, 10000)
-
+setTimeout(init, 0)
+app.listen(port)
 
 
